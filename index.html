@@ -12,9 +12,6 @@
         .login-logo { width: 100px; height: 100px; background: linear-gradient(135deg, #1e3c72, #2a5298); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: white; font-weight: bold; font-size: 1rem; text-align: center; line-height: 1.3; padding: 10px; }
         .login-card h2 { color: #1e3c72; margin-bottom: 5px; }
         .login-subtitle { color: #666; margin-bottom: 20px; font-size: 0.85rem; }
-        .role-selector { display: flex; gap: 10px; margin: 20px 0; }
-        .role-btn { flex: 1; padding: 10px; border: 2px solid #e0e0e0; background: white; border-radius: 10px; cursor: pointer; font-weight: bold; }
-        .role-btn.active { background: #1e3c72; color: white; border-color: #1e3c72; }
         .login-card input { width: 100%; padding: 12px 15px; margin: 10px 0; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; }
         .login-card input:focus { border-color: #1e3c72; outline: none; }
         .login-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 20px; }
@@ -104,10 +101,6 @@
         <div class="login-logo" style="background: #27ae60;">KKG<br>WAHED<br>HASYIM</div>
         <h2>🔬 CBT Ilmu Pengetahuan Alam (IPA) SD</h2>
         <div class="login-subtitle">KKG Wahed Hasyim | Materi: Sistem Organ & Teknologi Ramah Lingkungan</div>
-        <div class="role-selector">
-            <button class="role-btn active" id="roleSiswa" onclick="setRole('siswa')">👨‍🎓 Siswa</button>
-            <button class="role-btn" id="roleGuru" onclick="setRole('guru')">👩‍🏫 Guru</button>
-        </div>
         <input type="text" id="username" placeholder="Username">
         <input type="text" id="password" placeholder="Password">
         <button class="login-btn" onclick="login()">Masuk</button>
@@ -137,7 +130,7 @@
             <div>
                 <button class="btn-primary" onclick="showAddSiswaForm()">➕ Tambah Siswa</button>
                 <button class="btn-success" onclick="showImportExcel()">📂 Import Excel</button>
-                <button class="btn-warning" onclick="generateBulkSiswa()">📦 Generate 100 Siswa</button>
+                <button class="btn-warning" onclick="generateBulkSiswa()">📦 Generate 1000 Siswa</button>
                 <button class="btn-danger" onclick="deleteAllSiswa()">🗑️ Hapus Semua Siswa</button>
             </div>
         </div>
@@ -182,7 +175,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbywEFI1si2ht_66lRw_vNR6YLK-xNGv4wW29NPbvj504P2pODBvzwzPOjLMpWnD0PWVew/exec";
     
     let teksBacaan = {}; let questions = []; let examDataLoaded = false;
-    let students = {}, currentUser = null, currentRole = 'siswa', examActive = false;
+    let students = {}, currentUser = null, examActive = false;
     let timerInterval, timeSeconds = 3600, currentQuestionIdx = 0;
     let importDataTemp = [], currentEditUsername = null;
     let violationDetected = false;
@@ -219,7 +212,7 @@
     
     async function reloadExamData() { const ok = await loadExamData(true); if (ok) alert(`✅ Soal di-reload: ${questions.length} soal IPA.`); }
     
-    async function generateBulkSiswa() { let count = Math.min(parseInt(prompt('Jumlah siswa max 100:', '100')) || 0, 100); if (count <= 0) return; let currentCount = Object.keys(students).length; if (currentCount + count > 100) { alert(`Maksimal 100 siswa.`); return; } showLoading(`Membuat ${count} siswa...`); for (let i = currentCount + 1; i <= currentCount + count; i++) { await callAPI('addStudent', { username: `siswa${i}`, name: `Siswa ${i}`, lembaga: `Lembaga ${i}`, password: generateRandomPassword() }); } hideLoading(); await loadGuruDashboard(); alert(`${count} siswa ditambahkan!`); }
+    async function generateBulkSiswa() { let count = Math.min(parseInt(prompt('Jumlah siswa max 1000:', '1000')) || 0, 1000); if (count <= 0) return; let currentCount = Object.keys(students).length; if (currentCount + count > 1000) { alert(`Maksimal 1000 siswa.`); return; } showLoading(`Membuat ${count} siswa...`); for (let i = currentCount + 1; i <= currentCount + count; i++) { await callAPI('addStudent', { username: `siswa${i}`, name: `Siswa ${i}`, lembaga: `Lembaga ${i}`, password: generateRandomPassword() }); } hideLoading(); await loadGuruDashboard(); alert(`${count} siswa ditambahkan!`); }
     async function deleteAllSiswa() { if (confirm('Hapus SEMUA siswa?') && prompt('Ketik "HAPUS"') === 'HAPUS') { showLoading('Menghapus...'); await callAPI('deleteAllStudents'); hideLoading(); await loadGuruDashboard(); } }
     function showImportExcel() { document.getElementById('importExcelForm').style.display = 'block'; document.getElementById('addSiswaForm').style.display = 'none'; importDataTemp = []; document.getElementById('importPreview').innerHTML = ''; document.getElementById('confirmImportBtn').style.display = 'none'; }
     function hideImportExcel() { document.getElementById('importExcelForm').style.display = 'none'; }
@@ -314,23 +307,16 @@
         document.getElementById('examArea').style.display = 'none'; document.getElementById('siswaDashboard').style.display = 'block'; loadSiswaResults();
     }
     
-    function setRole(role) { currentRole = role; document.getElementById('roleSiswa').classList.toggle('active', role === 'siswa'); document.getElementById('roleGuru').classList.toggle('active', role === 'guru'); }
-    
+    // login hanya untuk siswa
     async function login() {
         let username = document.getElementById('username').value.trim(), password = document.getElementById('password').value;
-        if (currentRole === 'guru') {
-            if (username === 'guru' && password === 'admin123') { currentUser = { username: 'guru', role: 'guru', name: 'Guru' }; showGuruDashboard(); }
-            else { document.getElementById('loginError').textContent = 'Username/password guru salah!'; }
-        } else {
-            showLoading('Login...'); let res = await callAPI('getStudents'); hideLoading();
-            if (res.success) students = res.students;
-            if (students[username] && students[username].password === password) { currentUser = { username, role: 'siswa', name: students[username].name, lembaga: students[username].lembaga }; showSiswaDashboard(); }
-            else { document.getElementById('loginError').textContent = 'Username/password salah!'; }
-        }
+        showLoading('Login...'); let res = await callAPI('getStudents'); hideLoading();
+        if (res.success) students = res.students;
+        if (students[username] && students[username].password === password) { currentUser = { username, role: 'siswa', name: students[username].name, lembaga: students[username].lembaga }; showSiswaDashboard(); }
+        else { document.getElementById('loginError').textContent = 'Username/password salah!'; }
     }
     
     function showSiswaDashboard() { document.getElementById('loginPage').style.display = 'none'; document.getElementById('appContainer').style.display = 'block'; document.getElementById('siswaDashboard').style.display = 'block'; document.getElementById('guruDashboard').style.display = 'none'; document.getElementById('examArea').style.display = 'none'; document.getElementById('displayName').innerHTML = `👤 ${currentUser.name}`; document.getElementById('roleDisplay').innerHTML = '👨‍🎓 Siswa'; loadSiswaResults(); }
-    async function showGuruDashboard() { document.getElementById('loginPage').style.display = 'none'; document.getElementById('appContainer').style.display = 'block'; document.getElementById('siswaDashboard').style.display = 'none'; document.getElementById('guruDashboard').style.display = 'block'; document.getElementById('examArea').style.display = 'none'; document.getElementById('displayName').innerHTML = `👩‍🏫 ${currentUser.name}`; document.getElementById('roleDisplay').innerHTML = '👩‍🏫 Guru'; await loadGuruDashboard(); }
     function logout() { if (timerInterval) clearInterval(timerInterval); examActive = false; violationDetected = false; document.getElementById('loginPage').style.display = 'flex'; document.getElementById('appContainer').style.display = 'none'; document.getElementById('username').value = ''; document.getElementById('password').value = ''; document.getElementById('loginError').textContent = ''; }
 </script>
 </body>
